@@ -19,17 +19,8 @@ echo -e "\n$ansi_art\n"
 # Use custom branch if instructed, otherwise default to main
 ALETHEIA_REF="${ALETHEIA_REF:-main}"
 
-# Set mirror based on branch
-if [[ $ALETHEIA_REF == "dev" ]]; then
-  export ALETHEIA_MIRROR=edge
-  # echo 'Server = https://mirror.aletheia.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
-elif [[ $ALETHEIA_REF == "rc" ]]; then
-  export ALETHEIA_MIRROR=rc
-  # echo 'Server = https://rc-mirror.aletheia.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
-else
-  export ALETHEIA_MIRROR=stable
-  # echo 'Server = https://stable-mirror.aletheia.org/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
-fi
+# Ensure a working Arch Linux mirrorlist is in place
+echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist >/dev/null
 
 sudo pacman -Syu --noconfirm --needed git
 
