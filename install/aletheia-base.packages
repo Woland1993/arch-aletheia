@@ -90,8 +90,6 @@ nss-mdns
 nvim
 obs-studio
 obsidian
-aletheia-nvim
-aletheia-walker
 pamixer
 pinta
 playerctl
@@ -143,5 +141,4 @@ xdg-terminal-exec
 xmlstarlet
 xournalpp
 yaru-icon-theme
-yay
 zoxide

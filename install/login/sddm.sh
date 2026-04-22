@@ -1,5 +1,16 @@
-# Install aletheia SDDM theme
-aletheia-refresh-sddm
+# Install aletheia SDDM theme if available
+if [[ -d $ALETHEIA_PATH/default/sddm/aletheia ]]; then
+  aletheia-refresh-sddm
+fi
+
+# Detect available Hyprland session
+if [[ -f /usr/share/wayland-sessions/hyprland-uwsm.desktop ]]; then
+  HYPR_SESSION="hyprland-uwsm"
+elif [[ -f /usr/share/wayland-sessions/hyprland.desktop ]]; then
+  HYPR_SESSION="hyprland"
+else
+  HYPR_SESSION="hyprland"
+fi
 
 # Setup SDDM login service
 sudo mkdir -p /etc/sddm.conf.d
@@ -7,7 +18,7 @@ if [[ ! -f /etc/sddm.conf.d/autologin.conf ]]; then
   cat <<EOF | sudo tee /etc/sddm.conf.d/autologin.conf
 [Autologin]
 User=$USER
-Session=hyprland-uwsm
+Session=$HYPR_SESSION
 
 [Theme]
 Current=aletheia
