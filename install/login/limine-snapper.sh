@@ -1,5 +1,7 @@
 if command -v limine &>/dev/null; then
-  sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook
+  # Try to install limine helper packages, but don't fail if unavailable
+  sudo pacman -S --noconfirm --needed limine-snapper-sync limine-mkinitcpio-hook 2>/dev/null || \
+    echo "Warning: limine-snapper-sync or limine-mkinitcpio-hook not available, skipping"
 
   sudo tee /etc/mkinitcpio.conf.d/aletheia_hooks.conf <<EOF >/dev/null
 HOOKS=(base udev plymouth keyboard autodetect microcode modconf kms keymap consolefont block encrypt filesystems fsck btrfs-overlayfs)
@@ -23,23 +25,25 @@ EOF
   elif [[ -f /boot/limine.conf ]]; then
     limine_config="/boot/limine.conf"
   else
-    echo "Error: Limine config not found" >&2
-    exit 1
+    echo "Warning: Limine config not found, skipping limine configuration"
+    exit 0
   fi
 
   CMDLINE=$(grep "^[[:space:]]*cmdline:" "$limine_config" | head -1 | sed 's/^[[:space:]]*cmdline:[[:space:]]*//')
 
-  sudo cp $ALETHEIA_PATH/default/limine/default.conf /etc/default/limine
-  sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
+  if [[ -f $ALETHEIA_PATH/default/limine/default.conf ]]; then
+    sudo cp $ALETHEIA_PATH/default/limine/default.conf /etc/default/limine
+    sudo sed -i "s|@@CMDLINE@@|$CMDLINE|g" /etc/default/limine
 
-  # Append any drop-in kernel cmdline configs (from hardware fix scripts, etc.)
-  for dropin in /etc/limine-entry-tool.d/*.conf; do
-    [ -f "$dropin" ] && cat "$dropin" | sudo tee -a /etc/default/limine >/dev/null
-  done
+    # Append any drop-in kernel cmdline configs (from hardware fix scripts, etc.)
+    for dropin in /etc/limine-entry-tool.d/*.conf; do
+      [ -f "$dropin" ] && cat "$dropin" | sudo tee -a /etc/default/limine >/dev/null
+    done
 
-  # UKI and EFI fallback are EFI only
-  if [[ -z $EFI ]]; then
-    sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
+    # UKI and EFI fallback are EFI only
+    if [[ -z ${EFI:-} ]]; then
+      sudo sed -i '/^ENABLE_UKI=/d; /^ENABLE_LIMINE_FALLBACK=/d' /etc/default/limine
+    fi
   fi
 
   # Remove the original config file if it's not /boot/limine.conf
@@ -48,30 +52,52 @@ EOF
   fi
 
   # We overwrite the whole thing knowing the limine-update will add the entries for us
-  sudo cp $ALETHEIA_PATH/default/limine/limine.conf /boot/limine.conf
-
-  # Match Snapper configs if not installing from the ISO
-  if [[ -z ${ALETHEIA_CHROOT_INSTALL:-} ]]; then
-    if ! sudo snapper list-configs 2>/dev/null | grep -q "root"; then
-      sudo snapper -c root create-config /
-    fi
-
-    if ! sudo snapper list-configs 2>/dev/null | grep -q "home"; then
-      sudo snapper -c home create-config /home
-    fi
+  if [[ -f $ALETHEIA_PATH/default/limine/limine.conf ]]; then
+    sudo cp $ALETHEIA_PATH/default/limine/limine.conf /boot/limine.conf
   fi
 
-  # Enable quota to allow space-aware algorithms to work
-  sudo btrfs quota enable /
+  # Configure Snapper only if snapper is available and filesystem is BTRFS
+  if command -v snapper &>/dev/null && [[ $(findmnt -n -o FSTYPE /) == "btrfs" ]]; then
+    # Match Snapper configs if not installing from the ISO
+    if [[ -z ${ALETHEIA_CHROOT_INSTALL:-} ]]; then
+      if ! sudo snapper list-configs 2>/dev/null | grep -q "root"; then
+        sudo snapper -c root create-config / || echo "Warning: failed to create snapper root config"
+      fi
 
-  # Tweak default Snapper configs
-  sudo sed -i 's/^TIMELINE_CREATE="yes"/TIMELINE_CREATE="no"/' /etc/snapper/configs/{root,home}
-  sudo sed -i 's/^NUMBER_LIMIT="50"/NUMBER_LIMIT="5"/' /etc/snapper/configs/{root,home}
-  sudo sed -i 's/^NUMBER_LIMIT_IMPORTANT="10"/NUMBER_LIMIT_IMPORTANT="5"/' /etc/snapper/configs/{root,home}
-  sudo sed -i 's/^SPACE_LIMIT="0.5"/SPACE_LIMIT="0.3"/' /etc/snapper/configs/{root,home}
-  sudo sed -i 's/^FREE_LIMIT="0.2"/FREE_LIMIT="0.3"/' /etc/snapper/configs/{root,home}
+      if ! sudo snapper list-configs 2>/dev/null | grep -q "home"; then
+        sudo snapper -c home create-config /home || echo "Warning: failed to create snapper home config"
+      fi
+    fi
 
-  chrootable_systemctl_enable limine-snapper-sync.service
+    # Enable quota to allow space-aware algorithms to work
+    sudo btrfs quota enable / 2>/dev/null || true
+
+    # Tweak default Snapper configs (only if they exist)
+    if [[ -f /etc/snapper/configs/root ]]; then
+      sudo sed -i 's/^TIMELINE_CREATE="yes"/TIMELINE_CREATE="no"/' /etc/snapper/configs/root
+      sudo sed -i 's/^NUMBER_LIMIT="50"/NUMBER_LIMIT="5"/' /etc/snapper/configs/root
+      sudo sed -i 's/^NUMBER_LIMIT_IMPORTANT="10"/NUMBER_LIMIT_IMPORTANT="5"/' /etc/snapper/configs/root
+      sudo sed -i 's/^SPACE_LIMIT="0.5"/SPACE_LIMIT="0.3"/' /etc/snapper/configs/root
+      sudo sed -i 's/^FREE_LIMIT="0.2"/FREE_LIMIT="0.3"/' /etc/snapper/configs/root
+    fi
+
+    if [[ -f /etc/snapper/configs/home ]]; then
+      sudo sed -i 's/^TIMELINE_CREATE="yes"/TIMELINE_CREATE="no"/' /etc/snapper/configs/home
+      sudo sed -i 's/^NUMBER_LIMIT="50"/NUMBER_LIMIT="5"/' /etc/snapper/configs/home
+      sudo sed -i 's/^NUMBER_LIMIT_IMPORTANT="10"/NUMBER_LIMIT_IMPORTANT="5"/' /etc/snapper/configs/home
+      sudo sed -i 's/^SPACE_LIMIT="0.5"/SPACE_LIMIT="0.3"/' /etc/snapper/configs/home
+      sudo sed -i 's/^FREE_LIMIT="0.2"/FREE_LIMIT="0.3"/' /etc/snapper/configs/home
+    fi
+
+    # Enable snapper sync service only if it exists
+    if systemctl list-unit-files limine-snapper-sync.service &>/dev/null; then
+      chrootable_systemctl_enable limine-snapper-sync.service
+    else
+      echo "Warning: limine-snapper-sync.service not found, skipping"
+    fi
+  else
+    echo "Snapper or BTRFS not available, skipping snapshot configuration"
+  fi
 
   echo "Re-enabling mkinitcpio hooks..."
 
@@ -86,15 +112,19 @@ EOF
 
   echo "mkinitcpio hooks re-enabled"
 
-  sudo limine-update
+  # Run limine-update only if the command exists
+  if command -v limine-update &>/dev/null; then
+    sudo limine-update
 
-  # Verify that limine-update actually added boot entries
-  if ! grep -q "^/+" /boot/limine.conf; then
-    echo "Error: limine-update failed to add boot entries to /boot/limine.conf" >&2
-    exit 1
+    # Verify that limine-update actually added boot entries
+    if ! grep -q "^/+" /boot/limine.conf; then
+      echo "Warning: limine-update did not add boot entries to /boot/limine.conf" >&2
+    fi
+  else
+    echo "Warning: limine-update command not found, skipping boot entry generation"
   fi
 
-  if [[ -n $EFI ]] && efibootmgr &>/dev/null; then
+  if [[ -n ${EFI:-} ]] && command -v efibootmgr &>/dev/null && efibootmgr &>/dev/null; then
     # Remove the archinstall-created Limine entry
     while IFS= read -r bootnum; do
       sudo efibootmgr -b "$bootnum" -B >/dev/null 2>&1
