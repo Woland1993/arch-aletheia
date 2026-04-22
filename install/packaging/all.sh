@@ -1,3 +1,4 @@
+run_logged $ALETHEIA_INSTALL/packaging/yay.sh
 run_logged $ALETHEIA_INSTALL/packaging/base.sh
 run_logged $ALETHEIA_INSTALL/packaging/fonts.sh
 run_logged $ALETHEIA_INSTALL/packaging/nvim.sh

@@ -1,17 +1,38 @@
 #!/bin/bash
 
-# Add the named packages to the system if they're missing. Returns false if it couldn't be done.
+# Add the named packages to the system if they're missing.
+# Tries pacman first, then yay (AUR) as fallback.
 
-if aletheia-pkg-missing "$@"; then
-  sudo pacman -S --noconfirm --needed "$@" || exit 1
-fi
+# Separate packages into pacman-available and AUR
+pacman_pkgs=()
+aur_pkgs=()
 
 for pkg in "$@"; do
-  # Secondary check to handle states where pacman doesn't actually register an error
-  if ! pacman -Q "$pkg" &>/dev/null; then
-    echo -e "\033[31mError: Package '$pkg' did not install\033[0m" >&2
-    exit 1
+  if pacman -Q "$pkg" &>/dev/null; then
+    continue  # Already installed
+  elif pacman -Si "$pkg" &>/dev/null; then
+    pacman_pkgs+=("$pkg")
+  else
+    aur_pkgs+=("$pkg")
   fi
 done
 
+# Install pacman packages
+if (( ${#pacman_pkgs[@]} > 0 )); then
+  sudo pacman -S --noconfirm --needed "${pacman_pkgs[@]}" || true
+fi
+
+# Install AUR packages via yay if available
+if (( ${#aur_pkgs[@]} > 0 )); then
+  if command -v yay &>/dev/null; then
+    for pkg in "${aur_pkgs[@]}"; do
+      echo "Installing AUR package: $pkg"
+      yay -S --noconfirm --needed "$pkg" || echo -e "\033[33mWarning: Could not install AUR package '$pkg', skipping\033[0m" >&2
+    done
+  else
+    echo -e "\033[33mWarning: yay not available, skipping AUR packages: ${aur_pkgs[*]}\033[0m" >&2
+  fi
+fi
+
 exit 0
+
