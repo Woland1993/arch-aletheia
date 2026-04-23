@@ -1,0 +1,7 @@
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+source "/usr/share/aletheia-zsh/shell/envs"
+source "/usr/share/aletheia-zsh/shell/aliases"
+source "/usr/share/aletheia-zsh/shell/functions"
+source "/usr/share/aletheia-zsh/shell/inits"

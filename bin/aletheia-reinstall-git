@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+# Reinstall the Aletheia configuration directory from the git source.
+
+git clone --depth=1 "https://github.com/Woland1993/arch-aletheia.git" ~/.local/share/aletheia-new >/dev/null
+mv $ALETHEIA_PATH ~/.local/share/aletheia-old
+mv ~/.local/share/aletheia-new $ALETHEIA_PATH

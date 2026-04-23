@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+ZSHRC="${HOME}/.zshrc"
+BASHRC="${HOME}/.bashrc"
+ZSHRC_TEMPLATE="/usr/share/aletheia-zsh/templates/zshrc"
+BASHRC_TEMPLATE="/usr/share/aletheia-zsh/templates/bashrc"
+INPUTRC_SRC="/usr/share/aletheia-zsh/shell/inputrc"
+ZSHRC_BACKUP="${ZSHRC}.backup-$(date +%Y%m%d-%H%M%S)"
+BASHRC_BACKUP="${BASHRC}.backup-$(date +%Y%m%d-%H%M%S)"
+
+echo "Setting zsh as your default shell..."
+
+# Install .zshrc
+if [[ -f "$ZSHRC" ]]; then
+  cp "$ZSHRC" "$ZSHRC_BACKUP"
+fi
+cp "$ZSHRC_TEMPLATE" "$ZSHRC"
+
+# Install bash auto-launch template
+if [[ -f "$BASHRC" ]]; then
+  cp "$BASHRC" "$BASHRC_BACKUP"
+fi
+cp "$BASHRC_TEMPLATE" "$BASHRC"
+
+# Install inputrc (bash reads ~/.inputrc directly)
+cp -f "$INPUTRC_SRC" "${HOME}/.inputrc"
+
+echo ""
+echo -e "\033[32mzsh setup complete\033[0m"
+[[ -f "$ZSHRC_BACKUP" ]] && echo "  - Original .zshrc backed up to: $ZSHRC_BACKUP"
+[[ -f "$BASHRC_BACKUP" ]] && echo "  - Original .bashrc backed up to: $BASHRC_BACKUP"
+echo ""
+echo "Restart your terminal to activate zsh"
