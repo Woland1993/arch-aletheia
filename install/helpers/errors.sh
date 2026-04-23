@@ -166,13 +166,3 @@ trap exit_handler EXIT
 
 # Save original outputs in case we trap
 save_original_outputs
-    show_cursor
-  fi
-}
-
-# Set up traps
-trap catch_errors ERR INT TERM
-trap exit_handler EXIT
-
-# Save original outputs in case we trap
-save_original_outputs
