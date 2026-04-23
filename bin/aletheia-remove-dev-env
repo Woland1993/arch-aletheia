@@ -73,7 +73,12 @@ zig)
   ;;
 rust)
   echo -e "Removing Rust...\n"
-  rustup self uninstall -y 2>/dev/null || true
+  mise uninstall rust --all 2>/dev/null || true
+  mise rm -g rust 2>/dev/null || true
+  # Also clean up any legacy rustup install in $HOME (pre-Aletheia-rework installs)
+  if command -v rustup &>/dev/null; then
+    rustup self uninstall -y 2>/dev/null || true
+  fi
   ;;
 java)
   echo -e "Removing Java...\n"
