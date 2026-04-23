@@ -10,10 +10,13 @@ if (( $# == 0 )); then
   exit 0
 fi
 
-# Filter to packages that are not already installed
+# Filter to packages that are not already installed.
+# We use `pacman -T` instead of `pacman -Q` so a package is considered
+# satisfied if ANY installed package provides it (e.g. rustup provides rust,
+# and vice-versa). This avoids trying to install conflicting alternatives.
 needed=()
 for pkg in "$@"; do
-  if ! pacman -Q "$pkg" &>/dev/null; then
+  if ! pacman -T "$pkg" &>/dev/null; then
     needed+=("$pkg")
   fi
 done
@@ -46,9 +49,9 @@ if (( ${#aur_pkgs[@]} > 0 )); then
   yay -S --noconfirm --needed "${aur_pkgs[@]}" || exit 1
 fi
 
-# Final verification
+# Final verification (accept providers, same logic as above)
 for pkg in "$@"; do
-  if ! pacman -Q "$pkg" &>/dev/null; then
+  if ! pacman -T "$pkg" &>/dev/null; then
     echo -e "\033[31mError: Package '$pkg' did not install\033[0m" >&2
     exit 1
   fi
