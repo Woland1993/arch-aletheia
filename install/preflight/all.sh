@@ -1,6 +1,7 @@
 source $ALETHEIA_INSTALL/preflight/guard.sh
 source $ALETHEIA_INSTALL/preflight/begin.sh
 run_logged $ALETHEIA_INSTALL/preflight/show-env.sh
+run_logged $ALETHEIA_INSTALL/preflight/rust-cleanup.sh
 run_logged $ALETHEIA_INSTALL/preflight/pacman.sh
 run_logged $ALETHEIA_INSTALL/preflight/yay.sh
 run_logged $ALETHEIA_INSTALL/preflight/migrations.sh
