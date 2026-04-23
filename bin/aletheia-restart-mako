@@ -1,5 +1,0 @@
-#!/bin/bash
-
-# Reload mako configuration (used by the Aletheia theme switching).
-
-makoctl reload

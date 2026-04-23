@@ -1,6 +1,0 @@
-#!/bin/bash
-
-# Overwrite the user config for hypridle with the Aletheia default and restart the service.
-
-aletheia-refresh-config hypr/hypridle.conf
-aletheia-restart-hypridle
