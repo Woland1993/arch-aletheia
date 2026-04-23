@@ -146,6 +146,11 @@ catch_errors() {
 exit_handler() {
   local exit_code=$?
 
+  # Always stop the sudo keepalive so we don't leave a background loop behind
+  if declare -F stop_sudo_keepalive >/dev/null; then
+    stop_sudo_keepalive
+  fi
+
   # Only run if we're exiting with an error and haven't already handled it
   if (( exit_code != 0 )) && [[ $ERROR_HANDLING != "true" ]]; then
     catch_errors
