@@ -119,7 +119,7 @@ python-terminaltexteffects
 qt5-wayland
 ripgrep
 ruby
-rust
+rustup
 satty
 sddm
 signal-desktop
